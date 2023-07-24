@@ -1,0 +1,26 @@
+<network>
+  <name>{{ item.name }}</name>
+{% if item.nat is defined and item.nat is sameas true %}  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+{% endif %}
+{% if item.bridge is defined and item.bridge is sameas true %}  <bridge name='{{ item.name }}' stp='on' delay=''/>{% endif %}
+{% if item.gateway is defined %}
+  <ip address='{{ item.gateway }}' netmask='{{ item.netmask }}'>
+{% if item.tftp_by_libvirt is sameas true %}  <tftp root='/var/lib/tftpboot/pxelinux'/>
+{% endif %}
+{% if item.address is defined %}
+    <dhcp>
+      <range start='{{ item.first_ip }}' end='{{ item.last_ip }}'/>
+{% for value in item.address %}
+      <host mac='{{ value.mac_address | lower }}' {% if value.hostname is defined %}name='{{ value.hostname }}' {% endif %}ip='{{ value.ip }}'/>
+{% endfor %}
+{% if item.tftp_by_libvirt is sameas true %}      <bootp file='pxelinux.0'/>
+{% endif %}
+    </dhcp>
+{% endif %}
+  </ip>
+{% endif %}
+</network>

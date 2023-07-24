@@ -1,0 +1,54 @@
+<domain type='kvm'>
+  <name>{{ item.name }}</name>
+  <memory unit='GB'>{{ item.memory }}</memory>
+  <vcpu placement='static'>{{ item.cpu }}</vcpu>
+{% if item.cpu_mode is defined %}  <cpu mode='host-model' check='partial'/>{% endif %}
+  <os>
+    <type arch='x86_64' machine='pc-q35-rhel8.6.0'>hvm</type>
+    <boot dev='hd'/>
+    <boot dev='network'/>
+    <boot dev='cdrom'/>
+  </os>
+  <clock offset='utc'>
+    <timer name='rtc' tickpolicy='catchup'/>
+    <timer name='pit' tickpolicy='delay'/>
+    <timer name='hpet' present='no'/>
+  </clock>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+  <devices>
+    <emulator>/usr/libexec/qemu-kvm</emulator>
+{% for vol in item.volume %}
+    <disk type='file' device='{{ vol.device }}'>
+      <driver name='qemu' type='raw'/>
+      <source file='{{ vol.path_volume }}' index='{{ loop.index  }}'/>
+      <backingStore/>
+      <target dev='{{ vol.dev }}' bus='{{ vol.bus }}'/>
+{% if 'cdrom'  == "{{ vol.device }}" %}      <readonly/>{% endif %}
+    </disk>
+{% endfor %}
+{% for nic in item.network %}
+    <interface type='network'>
+      <mac address='{{ nic.mac_address }}'/>
+      <source network='{{ nic.name }}' />
+      <model type='virtio' />
+    </interface>
+{% endfor %}
+    <console type='pty' tty='/dev/pts/1'>
+      <source path='/dev/pts/1'/>
+      <target type='serial' port='0'/>
+      <alias name='serial0'/>
+    </console>
+    <graphics type='vnc' port='5900' autoport='yes' listen='{{ ansible_host }}'>
+      <listen type='address' address='{{ ansible_host }}'/>
+    </graphics>
+    <audio id='1' type='none'/>
+    <video>
+      <model type='vga' vram='16384' heads='1' primary='yes'/>
+      <alias name='video0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x0'/>
+    </video>
+  </devices>
+</domain>
+

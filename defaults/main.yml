@@ -1,0 +1,199 @@
+# defaults file for kvm
+packages:
+  - qemu-kvm
+  - qemu-img
+  - libvirt
+  - virt-install
+  - libvirt-client
+  - virt-manager
+
+dir_scripts: "/root/kvm"
+
+qemu_pool:
+  path: /home/pools
+  name: lab_pool
+
+qemu_networks:
+  - name: pxe
+    gateway: 172.16.1.1
+    netmask: 255.255.255.0
+    first_ip: 172.16.1.2
+    last_ip: 172.16.1.254
+    path: "{{ dir_scripts }}/networks"
+    address:
+      - mac_address: 52:54:00:5A:C7:05
+        ip: 172.16.1.10
+      - mac_address: 52:54:00:67:15:DF
+        ip: 172.16.1.20
+      - mac_address: 52:54:00:B1:4A:62
+        ip: 172.16.1.30
+      - mac_address: 52:54:00:E8:DA:8D
+        ip: 172.16.1.40
+      - mac_address: 52:54:00:36:79:9D
+        ip: 172.16.1.50
+  - name: management
+    gateway: 172.17.1.1
+    netmask: 255.255.255.0
+    first_ip: 172.17.1.2
+    last_ip: 172.17.1.254
+    path: "{{ dir_scripts }}/networks"
+    address:
+      - mac_address: 52:54:00:70:99:2B
+        ip: 172.17.1.10
+      - mac_address: 52:54:00:C4:32:BF
+        ip: 172.17.1.20
+      - mac_address: 52:54:00:4F:51:4D
+        ip: 172.17.1.30
+      - mac_address: 52:54:00:29:A9:15
+        ip: 172.17.1.40
+      - mac_address: 52:54:00:3A:69:94
+        ip: 172.17.1.50
+  - name: proxy
+    gateway: 172.18.1.1
+    netmask: 255.255.255.0
+    first_ip: 172.18.1.2
+    last_ip: 172.18.1.254
+    path: "{{ dir_scripts }}/networks"
+    address:
+      - mac_address: 52:54:00:A4:A8:C5
+        ip: 172.18.1.10
+      - mac_address: 52:54:00:CE:F1:AC
+        ip: 172.18.1.20
+      - mac_address: 52:54:00:92:BF:DD
+        ip: 172.18.1.30
+      - mac_address: 52:54:00:05:72:BA
+        ip: 172.18.1.40
+      - mac_address: 52:54:00:3A:A7:91
+        ip: 172.18.1.50
+qemu_vms:
+  - name: pxe
+    path_xml: "{{ dir_scripts }}/vms"
+    memory: 4
+    cpu: 4
+    volume:
+      - name: pxe
+        size_gb: 40
+        path_volume: /home/pools/pxe
+        path_xml: "{{ dir_scripts }}/volumes"
+        dev: vda
+        device: disk
+        bus: virtio
+      - name: cdrom
+        device: cdrom
+        path_volume: /root/kvm/images/rhel-8.6.iso
+        dev: sda
+        path_xml: "{{ dir_scripts }}/volumes"
+        bus: sata
+        cdrom: yes
+    network:
+      - name: pxe
+        mac_address: "52:54:00:5A:C7:05"
+      - name: management
+        mac_address: "52:54:00:70:99:2B"
+      - name: proxy
+        mac_address: "52:54:00:A4:A8:C5"
+  - name: satellite
+    path_xml: "{{ dir_scripts }}/vms"
+    memory: 16
+    cpu: 8
+    volume:
+      - name: satellite
+        size_gb: 200
+        path_volume: /home/pools/satellite
+        path_xml: "{{ dir_scripts }}/volumes"
+        dev: vda
+        device: disk
+        bus: virtio
+      - name: cdrom
+        device: cdrom
+        path_volume: /root/kvm/images/rhel-8.6.iso
+        dev: sda
+        path_xml: "{{ dir_scripts }}/volumes"
+        bus: sata
+        cdrom: yes
+    network:
+      - name: pxe
+        mac_address: "52:54:00:67:15:DF"
+      - name: management
+        mac_address: "52:54:00:C4:32:BF"
+      - name: proxy
+        mac_address: "52:54:00:CE:F1:AC"
+  - name: proxy
+    path_xml: "{{ dir_scripts }}/vms"
+    memory: 4
+    cpu: 4
+    volume:
+      - name: proxy
+        size_gb: 20
+        path_volume: /home/pools/proxy
+        path_xml: "{{ dir_scripts }}/volumes"
+        dev: vda
+        device: disk
+        bus: virtio
+      - name: cdrom
+        device: cdrom
+        path_volume: /root/kvm/images/rhel-8.6.iso
+        dev: sda
+        path_xml: "{{ dir_scripts }}/volumes"
+        bus: sata
+        cdrom: yes
+    network:
+      - name: pxe
+        mac_address: "52:54:00:B1:4A:62"
+      - name: management
+        mac_address: "52:54:00:4F:51:4D"
+      - name: proxy
+        mac_address: "52:54:00:92:BF:DD"
+  - name: idm1
+    path_xml: "{{ dir_scripts }}/vms"
+    memory: 8
+    cpu: 4
+    volume:
+      - name: idm1
+        size_gb: 30
+        path_volume: /home/pools/idm1
+        path_xml: "{{ dir_scripts }}/volumes"
+        dev: vda
+        device: disk
+        bus: virtio
+      - name: cdrom
+        device: cdrom
+        path_volume: /root/kvm/images/rhel-8.6.iso
+        dev: sda
+        path_xml: "{{ dir_scripts }}/volumes"
+        bus: sata
+        cdrom: yes
+    network:
+      - name: pxe
+        mac_address: "52:54:00:E8:DA:8D"
+      - name: management
+        mac_address: "52:54:00:29:A9:15"
+      - name: proxy
+        mac_address: "52:54:00:05:72:BA"
+  - name: quay
+    path_xml: "{{ dir_scripts }}/vms"
+    memory: 8
+    cpu: 4
+    volume:
+      - name: quay
+        size_gb: 30
+        path_volume: /home/pools/quay
+        path_xml: "{{ dir_scripts }}/volumes"
+        dev: vda
+        device: disk
+        bus: virtio
+      - name: cdrom
+        device: cdrom
+        path_volume: /root/kvm/images/rhel-8.6.iso
+        dev: sda
+        path_xml: "{{ dir_scripts }}/volumes"
+        bus: sata
+        cdrom: yes
+    network:
+      - name: pxe
+        mac_address: "52:54:00:36:79:9D"
+      - name: management
+        mac_address: "52:54:00:3A:69:94"
+      - name: proxy
+        mac_address: "52:54:00:3A:A7:91"
+

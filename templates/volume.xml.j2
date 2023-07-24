@@ -1,0 +1,10 @@
+<volume>
+  <name>{{ item.1.name }}</name>
+  <capacity unit="G">{{ item.1.size_gb }}</capacity>
+  <target>
+    <path>{{ item.1.path_volume}}/{{ item.1.name }}</path>
+    <permissions>
+      <label>virt_image_t</label>
+    </permissions>
+  </target>
+</volume>

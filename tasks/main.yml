@@ -1,0 +1,144 @@
+---
+# tasks file for kvm
+- name: install packages
+  ansible.builtin.dnf:
+    name:
+      - qemu-kvm
+      - qemu-img
+      - libvirt
+      - virt-install
+      - libvirt-client
+      - virt-manager
+      - edk2-ovmf
+    state: present
+
+- name: enable firewalld
+  ansible.builtin.systemd:
+    state: started
+    enabled: yes
+    name: libvirtd
+
+- name: create folders
+  ansible.builtin.file:
+    path: "{{ item }}"
+    recurse: yes
+    state: directory
+  loop:
+    - "{{ dir_scripts }}/networks"
+    - "{{ dir_scripts }}/vms"
+    - "{{ dir_scripts }}/volumes"
+    - "{{ dir_scripts }}/pools"
+    - "{{ dir_scripts }}/images"
+    - "/home/pools"
+
+- name: Get image
+  ansible.builtin.get_url:
+    url: "{{ centos_link }}"
+    dest: "{{ dir_scripts }}/images"
+  ignore_errors: yes
+
+- name: push conf 
+  ansible.builtin.template:
+    src: "{{ item.xml }}"
+    dest: "{{ item.path }}"
+  loop:
+    - { xml: pool.xml.j2, path: "{{ dir_scripts }}/pools/pool.xml" }
+    - { xml: qemu.conf.j2, path: /etc/libvirt/qemu.conf }
+
+- name: push network
+  ansible.builtin.template:
+    src: "network.xml.j2"
+    dest: "{{ item.path }}/{{ item.name }}.xml"
+  loop: "{{ qemu_networks }}"
+
+- name: push volume servitude
+  ansible.builtin.template:
+    src: "volume.xml.j2"
+    dest: "{{ item.1.path_xml }}/{{ item.1.name }}.xml"
+  loop: "{{ qemu_vms | subelements('volume') }}"
+  when: item.1.size_gb is defined
+
+- name: push vms servitude
+  ansible.builtin.template:
+    src: "vm.xml.j2"
+    dest: "{{ item.path_xml }}/{{ item.name }}.xml"
+  loop: "{{ qemu_vms }}"
+
+- name: push volume openstack
+  ansible.builtin.template:
+    src: "volume.xml.j2"
+    dest: "{{ item.1.path_xml }}/{{ item.1.name }}.xml"
+  loop: "{{ qemu_openstack | subelements('volume') }}"
+  when: item.1.size_gb is defined
+
+- name: push vms openstack
+  ansible.builtin.template:
+    src: "openstack.xml.j2"
+    dest: "{{ item.path_xml }}/{{ item.name }}.xml"
+  loop: "{{ qemu_openstack }}"
+
+- name: push volume servitude
+  ansible.builtin.template:
+    src: "volume.xml.j2"
+    dest: "{{ item.1.path_xml }}/{{ item.1.name }}.xml"
+  loop: "{{ qemu_okd | subelements('volume') }}"
+  when: item.1.size_gb is defined
+
+- name: push vms okd
+  ansible.builtin.template:
+    src: "vm.xml.j2"
+    dest: "{{ item.path_xml }}/{{ item.name }}.xml"
+  loop: "{{ qemu_okd }}"
+
+- name: restart libvirtd
+  ansible.builtin.systemd:
+    state: restarted
+    name: libvirtd
+
+- name: Create Pool
+  command: |
+    virsh pool-create {{ dir_scripts }}/pools/pool.xml
+  ignore_errors: yes
+
+- name: Create Vol
+  command: |
+    /usr/bin/virsh vol-create {{ qemu_pool.name }} {{ item.1.path_xml }}/{{ item.1.name }}.xml
+  loop: "{{ qemu_vms | subelements('volume') }}"
+  when: item.1.size_gb is defined
+  ignore_errors: yes
+
+- name: Define Net
+  command: |
+    /usr/bin/virsh net-define {{ item.path }}/{{ item.name }}.xml
+  loop: "{{ qemu_networks }}"
+  ignore_errors: yes
+
+- name: Start Net
+  command: |
+    /usr/bin/virsh net-start {{ item.name }}
+  loop: "{{ qemu_networks }}"
+  ignore_errors: yes
+
+- name: Autostart Net
+  command: |
+    /usr/bin/virsh net-autostart {{ item.name }}
+  loop: "{{ qemu_networks }}"
+  ignore_errors: yes
+
+- name: Define vms
+  command: |
+    /usr/bin/virsh define {{ item.path_xml }}/{{ item.name }}.xml
+  loop: "{{ qemu_vms }}"
+  ignore_errors: yes
+
+- name: Define vms OpenStack
+  command: |
+    /usr/bin/virsh define {{ item.path_xml }}/{{ item.name }}.xml
+  loop: "{{ qemu_openstack }}"
+  ignore_errors: yes
+
+- name: Define vms okd
+  command: |
+    /usr/bin/virsh define {{ item.path_xml }}/{{ item.name }}.xml
+  loop: "{{ qemu_okd }}"
+  ignore_errors: yes
